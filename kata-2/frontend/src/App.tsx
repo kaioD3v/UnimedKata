@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import type { Task } from "../types/tarefas";
+import "./App.css";
+import { Filter } from "lucide-react";
 
-function App() {
+export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [titulo, setTitulo] = useState("");
 
-  // GET
+
+  const [filter, setFilter] = useState<"all" | "a_fazer" | "concluida">("all");
+  const [openFilter, setOpenFilter] = useState(false);
+
   const fetchTasks = async () => {
-    try {
-      const res = await axios.get<Task[]>("http://127.0.0.1:5000/tasks");
-      setTasks(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+    const res = await axios.get<Task[]>("http://127.0.0.1:5000/tasks");
+    setTasks(res.data);
   };
 
-  // POST
   const createTask = async () => {
     if (!titulo.trim()) return;
 
@@ -30,17 +30,19 @@ function App() {
     fetchTasks();
   };
 
-  // DELETE
   const deleteTask = async (id: number) => {
     await axios.delete(`http://127.0.0.1:5000/tasks/${id}`);
     fetchTasks();
   };
 
-  // PATCH (marcar como concluída)
-  const completeTask = async (id: number) => {
-    await axios.patch(`http://127.0.0.1:5000/tasks/${id}`, {
-      status: "concluida"
+  const toggleTask = async (task: Task) => {
+    const novoStatus =
+      task.status === "concluida" ? "a_fazer" : "concluida";
+
+    await axios.patch(`http://127.0.0.1:5000/tasks/${task.idTarefa}`, {
+      status: novoStatus
     });
+
     fetchTasks();
   };
 
@@ -48,43 +50,81 @@ function App() {
     fetchTasks();
   }, []);
 
+  // 🔎 FILTRO
+  const filteredTasks =
+    filter === "all"
+      ? tasks
+      : tasks.filter((t) => t.status === filter);
+
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>📋 Minhas Tarefas</h1>
+    <div className="app">
 
-      <input
-        type="text"
-        value={titulo}
-        onChange={(e) => setTitulo(e.target.value)}
-        placeholder="Digite uma tarefa..."
-      />
+      <header className="header">
+        <h2>TaskFlow</h2>
+      </header>
 
-      <button onClick={createTask}>Criar</button>
+      <div className="container">
 
-      <hr />
+        {/* LEFT */}
+        <div className="left">
+          <h1>Organize suas tarefas</h1>
+          <p>Simples, rápido e eficiente.</p>
 
-      {tasks.map((task) => (
-        <div key={task.idTarefa}>
-          <span
-            style={{
-              textDecoration:
-                task.status === "concluida" ? "line-through" : "none"
-            }}
-          >
-            {task.tituloTarefa} ({task.status})
-          </span>
-
-          <button onClick={() => completeTask(task.idTarefa)}>
-            ✔
-          </button>
-
-          <button onClick={() => deleteTask(task.idTarefa)}>
-            ❌
-          </button>
+          <div className="inputBox">
+            <input
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Digite uma tarefa..."
+            />
+            <button onClick={createTask}>Criar</button>
+          </div>
         </div>
-      ))}
+
+        {/* RIGHT */}
+        <div className="right">
+          <div className="tasksHeader">
+            <h2>Suas tarefas</h2>
+
+            <div className="filterWrapper">
+              <Filter
+                size={20}
+                className="filterIcon"
+                onClick={() => setOpenFilter(!openFilter)}
+              />
+
+              {openFilter && (
+                <div className="filterDropdown">
+                  <div onClick={() => { setFilter("all"); setOpenFilter(false); }}>
+                    Todas
+                  </div>
+                  <div onClick={() => { setFilter("a_fazer"); setOpenFilter(false); }}>
+                    Pendentes
+                  </div>
+                  <div onClick={() => { setFilter("concluida"); setOpenFilter(false); }}>
+                    Concluídas
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {filteredTasks.map((task) => (
+            <div key={task.idTarefa} className="taskItem">
+              <span className={task.status === "concluida" ? "done" : ""}>
+                {task.tituloTarefa}
+              </span>
+
+              <div className="actions">
+                <button onClick={() => toggleTask(task)}>
+                  {task.status === "concluida" ? "↩" : "✔"}
+                </button>
+                <button onClick={() => deleteTask(task.idTarefa)}>✖</button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+      </div>
     </div>
   );
 }
-
-export default App;
