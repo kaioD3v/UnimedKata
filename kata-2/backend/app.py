@@ -1,26 +1,27 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pymysql
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# ------------------------
-# Conexão MySQL
-# ------------------------
+# conexão MySQL
 def get_db():
     return pymysql.connect(
-        host="localhost",
-        user="root",
-        password="kaioigor15",
-        database="tarefas",
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
         cursorclass=pymysql.cursors.DictCursor
     )
 
-# ------------------------
+
 # GET /tasks
-# ------------------------
+
 @app.route("/tasks", methods=["GET"])
 def get_tasks():
     status = request.args.get("status")
@@ -39,9 +40,8 @@ def get_tasks():
     return jsonify(tasks), 200
 
 
-# ------------------------
 # POST /tasks
-# ------------------------
+
 @app.route("/tasks", methods=["POST"])
 def create_task():
     data = request.get_json()
@@ -68,9 +68,9 @@ def create_task():
     return jsonify({"id": task_id, "message": "Tarefa criada"}), 201
 
 
-# ------------------------
+
 # PATCH /tasks/{id}
-# ------------------------
+
 @app.route("/tasks/<int:id>", methods=["PATCH"])
 def update_task(id):
     data = request.get_json()
@@ -116,9 +116,9 @@ def update_task(id):
     return jsonify({"message": "Atualizada"}), 200
 
 
-# ------------------------
+
 # DELETE /tasks/{id}
-# ------------------------
+
 @app.route("/tasks/<int:id>", methods=["DELETE"])
 def delete_task(id):
     conn = get_db()
@@ -135,8 +135,8 @@ def delete_task(id):
     return jsonify({"message": "Deletada"}), 200
 
 
-# ------------------------
-# RUN
-# ------------------------
+
+# RODAR
+
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,106 +1,170 @@
+// Importações de bibliotecas, css e tipos
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import type { Task } from "../types/tarefas";
 import "./App.css";
-import { Filter } from "lucide-react";
+import { Filter, Check, RotateCcw, X, Pencil } from "lucide-react";
 
 export default function App() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [titulo, setTitulo] = useState("");
 
+  // State que armazena todas as tarefas
+  const [tarefas, setTarefas] = useState<Task[]>([]);
 
-  const [filter, setFilter] = useState<"all" | "a_fazer" | "concluida">("all");
-  const [openFilter, setOpenFilter] = useState(false);
+  // state de input de criação da tarefa
+  const [tituloTarefa, setTituloTarefa] = useState("");
 
-  const fetchTasks = async () => {
+  // state do filtro (todas, a fazer ou concluída)
+  const [filtro, setFiltro] = useState<"todas" | "a_fazer" | "concluida">("todas");
+
+  // controla se o floating do filtro está aberto
+  const [filtroAberto, setFiltroAberto] = useState(false);
+
+  // sabe se a tarefa está sendo editada
+  const [tarefaEditando, setTarefaEditando] = useState<Task | null>(null);
+
+  // state do input de edição
+  const [tituloEdicao, setTituloEdicao] = useState("");
+
+  // busca tarefas no backend
+  const buscarTarefas = async () => {
     const res = await axios.get<Task[]>("http://127.0.0.1:5000/tasks");
-    setTasks(res.data);
+    setTarefas(res.data);
   };
 
-  const createTask = async () => {
-    if (!titulo.trim()) return;
+  // criar uma nova tarefa
+  const criarTarefa = async () => {
+    if (!tituloTarefa.trim()) return;
 
     await axios.post("http://127.0.0.1:5000/tasks", {
-      tituloTarefa: titulo,
+      tituloTarefa,
       status: "a_fazer",
-      prioridade: 1
+      prioridade: 1,
     });
 
-    setTitulo("");
-    fetchTasks();
+    setTituloTarefa("");
+    buscarTarefas();
   };
 
-  const deleteTask = async (id: number) => {
+  // deletar uma tarefa
+  const deletarTarefa = async (id: number) => {
     await axios.delete(`http://127.0.0.1:5000/tasks/${id}`);
-    fetchTasks();
+    buscarTarefas();
   };
 
-  const toggleTask = async (task: Task) => {
+  // alterna o status da tarefa
+  const alternarStatusTarefa = async (tarefa: Task) => {
     const novoStatus =
-      task.status === "concluida" ? "a_fazer" : "concluida";
+      tarefa.status === "concluida" ? "a_fazer" : "concluida";
 
-    await axios.patch(`http://127.0.0.1:5000/tasks/${task.idTarefa}`, {
-      status: novoStatus
-    });
+    await axios.patch(
+      `http://127.0.0.1:5000/tasks/${tarefa.idTarefa}`,
+      { status: novoStatus }
+    );
 
-    fetchTasks();
+    buscarTarefas();
   };
 
+  // abre edição
+  const abrirEdicao = (tarefa: Task) => {
+    setTarefaEditando(tarefa);
+    setTituloEdicao(tarefa.tituloTarefa);
+  };
+
+  // confirma edição
+const confirmarEdicao = async () => {
+  if (!tarefaEditando || !tituloEdicao.trim()) return;
+
+  const tituloLimpo = tituloEdicao.trim();
+
+  //  se for igual → só fecha
+  if (tituloLimpo === tarefaEditando.tituloTarefa) {
+    fecharModal();
+    return;
+  }
+
+  // se mudou → salva e fecha
+  await axios.patch(
+    `http://127.0.0.1:5000/tasks/${tarefaEditando.idTarefa}`,
+    { tituloTarefa: tituloLimpo }
+  );
+
+  fecharModal();
+  buscarTarefas();
+};
+
+  const fecharModal = () => {
+    setTarefaEditando(null);
+    setTituloEdicao("");
+  };
+
+  // ESC pra fechar
   useEffect(() => {
-    fetchTasks();
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") fecharModal();
+    };
+
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
   }, []);
 
-  // 🔎 FILTRO
-  const filteredTasks =
-    filter === "all"
-      ? tasks
-      : tasks.filter((t) => t.status === filter);
+  // executa ao carregar
+  useEffect(() => {
+    buscarTarefas();
+  }, []);
+
+  // filtro
+  const tarefasFiltradas =
+    filtro === "todas"
+      ? tarefas
+      : tarefas.filter((t) => t.status === filtro);
 
   return (
-    <div className="app">
+    <div className="aplicacao">
 
-      <header className="header">
+      {/* header */}
+      <header className="cabecalho">
         <h2>TaskFlow</h2>
       </header>
 
-      <div className="container">
+      <div className="containerPrincipal">
 
-        {/* LEFT */}
-        <div className="left">
+        {/* esquerda */}
+        <div className="ladoEsquerdo">
           <h1>Organize suas tarefas</h1>
           <p>Simples, rápido e eficiente.</p>
 
-          <div className="inputBox">
+          <div className="caixaInput">
             <input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
+              value={tituloTarefa}
+              onChange={(e) => setTituloTarefa(e.target.value)}
               placeholder="Digite uma tarefa..."
             />
-            <button onClick={createTask}>Criar</button>
+            <button onClick={criarTarefa}>Criar</button>
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div className="right">
-          <div className="tasksHeader">
+        {/* direita */}
+        <div className="ladoDireito">
+
+          <div className="cabecalhoTarefas">
             <h2>Suas tarefas</h2>
 
-            <div className="filterWrapper">
+            <div className="wrapperFiltro">
               <Filter
                 size={20}
-                className="filterIcon"
-                onClick={() => setOpenFilter(!openFilter)}
+                onClick={() => setFiltroAberto(!filtroAberto)}
               />
 
-              {openFilter && (
-                <div className="filterDropdown">
-                  <div onClick={() => { setFilter("all"); setOpenFilter(false); }}>
+              {filtroAberto && (
+                <div className="floatingFiltro">
+                  <div onClick={() => { setFiltro("todas"); setFiltroAberto(false); }}>
                     Todas
                   </div>
-                  <div onClick={() => { setFilter("a_fazer"); setOpenFilter(false); }}>
-                    Pendentes
+                  <div onClick={() => { setFiltro("a_fazer"); setFiltroAberto(false); }}>
+                    a Fazer
                   </div>
-                  <div onClick={() => { setFilter("concluida"); setOpenFilter(false); }}>
+                  <div onClick={() => { setFiltro("concluida"); setFiltroAberto(false); }}>
                     Concluídas
                   </div>
                 </div>
@@ -108,23 +172,69 @@ export default function App() {
             </div>
           </div>
 
-          {filteredTasks.map((task) => (
-            <div key={task.idTarefa} className="taskItem">
-              <span className={task.status === "concluida" ? "done" : ""}>
-                {task.tituloTarefa}
+          {tarefasFiltradas.map((tarefa) => (
+            <div key={tarefa.idTarefa} className="itemTarefa">
+
+              <span className={tarefa.status === "concluida" ? "concluida" : ""}>
+                {tarefa.tituloTarefa}
               </span>
 
-              <div className="actions">
-                <button onClick={() => toggleTask(task)}>
-                  {task.status === "concluida" ? "↩" : "✔"}
+              <div className="acoes">
+                <button onClick={() => abrirEdicao(tarefa)}>
+                  <Pencil size={15} />
                 </button>
-                <button onClick={() => deleteTask(task.idTarefa)}>✖</button>
+
+                <button onClick={() => alternarStatusTarefa(tarefa)}>
+                  {tarefa.status === "concluida" ? (
+                    <RotateCcw size={15} />
+                  ) : (
+                    <Check size={15} />
+                  )}
+                </button>
+
+                <button onClick={() => deletarTarefa(tarefa.idTarefa)}>
+                  <X size={15} />
+                </button>
               </div>
             </div>
           ))}
         </div>
-
       </div>
+
+      {/* MODAL COM PORTAL */}
+      {tarefaEditando &&
+        createPortal(
+          <div className="overlayEdicao" onClick={fecharModal}>
+            <div
+              className="modalEdicao animarEntrada"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>Editar tarefa</h3>
+
+              <input
+                autoFocus
+                value={tituloEdicao}
+                onChange={(e) => setTituloEdicao(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && confirmarEdicao()}
+                placeholder="Novo nome da tarefa..."
+              />
+
+              <div className="acoesEdicao">
+                <button className="botaoCancelar" onClick={fecharModal}>
+                  Cancelar
+                </button>
+
+                <button
+                  className="botaoConfirmar"
+                  onClick={confirmarEdicao}
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
