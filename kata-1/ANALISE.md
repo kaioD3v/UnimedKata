@@ -5,3 +5,6 @@
 3. Sim, interagem. A regra 5 roda primeiro e sobe nivel de 2 para 3, então quando a regra 4 checa nivel == 2 o valor já foi modificado. Não causa problema porque idade >= 60 já é falso. O paciente entra com urgência média e sobe para urgência alta.
 
 4. O código atual lidaria mal, porque todas as regras estão dentro de prioridade(), adicionar uma 6ª regra iria mexer diretamente nessa função, o que aumenta o risco de quebrar as regras existentes por causa da dependência entre elas.
+
+
+obs: todos os testes foram feitos a partir dos inputs no terminal

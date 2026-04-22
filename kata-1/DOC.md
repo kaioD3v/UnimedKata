@@ -6,9 +6,9 @@ A ideia é priorizar quem realmente precisa mais, aplicando algumas regras autom
 
 O sistema roda no terminal (console) e tem um menu simples:
 
-1 → Adicionar paciente
-2 → Ver fila de atendimento
-0 → Sair
+1 - Adicionar paciente
+2 - Ver fila de atendimento
+0 - Sair
 
 A prioridade não é só a urgência original, ela pode mudar:
 
@@ -70,7 +70,7 @@ Mostra a fila ordenada no terminal.
 === ORDEM DE ATENDIMENTO ===
 Maria - Idade: 17 - CRITICA - Chegada: 09:45
 João - Idade: 65 - ALTA - Chegada: 09:40
-🗂️ Estrutura dos dados
+Estrutura dos dados
 
 Cada paciente é um dicionário assim:
 
